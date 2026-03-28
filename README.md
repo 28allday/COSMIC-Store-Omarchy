@@ -1,5 +1,13 @@
 # COSMIC Store - Omarchy
 
+## Video Guide
+
+<p align="center">
+  <a href="https://youtu.be/iz76QA5IDE8">
+    <img src="https://img.youtube.com/vi/iz76QA5IDE8/0.jpg" width="700">
+  </a>
+</p>
+
 A graphical Flatpak app store for [Omarchy](https://omarchy.com) (Arch Linux + Hyprland), powered by System76's [COSMIC Store](https://github.com/pop-os/cosmic-store).
 
 Browse and install thousands of Flatpak applications through a clean, modern GUI — with full Hyprland integration so installed apps appear in your app launcher.
