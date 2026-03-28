@@ -51,7 +51,12 @@ if ! have pacman; then echo "This script is for Arch/Arch-based systems."; exit 
 #   xdg-desktop-portal-gtk:      GTK fallback portal for dialogs
 #   xdg-desktop-portal-hyprland: Hyprland-specific portal (screen sharing, window picking)
 #   desktop-file-utils:          Provides update-desktop-database for app menu integration
-sudo pacman -Sy --noconfirm
+#
+# We use -Syu (full system upgrade) rather than just -Sy because syncing
+# the package database without upgrading can cause partial upgrades on Arch,
+# where newly installed packages link against library versions that aren't
+# installed yet. This is a well-known Arch footgun.
+sudo pacman -Syu --noconfirm
 need base-devel
 need git
 need flatpak
@@ -79,9 +84,8 @@ elif have paru; then
   paru -S --noconfirm cosmic-store-git
 else
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  git -C "$tmp" clone https://aur.archlinux.org/cosmic-store-git.git
-  cd "$tmp/cosmic-store-git"
-  makepkg -si --noconfirm
+  git clone https://aur.archlinux.org/cosmic-store-git.git "$tmp/cosmic-store-git"
+  (cd "$tmp/cosmic-store-git" && makepkg -si --noconfirm)
 fi
 
 # Create a wrapper script that sets XDG_CURRENT_DESKTOP=Hyprland before
@@ -124,10 +128,10 @@ EOF
 #   1. ~/.config/environment.d/flatpak.conf — picked up by systemd user session
 #   2. ~/.config/hypr/hyprland.conf — picked up by Hyprland directly
 mkdir -p "$HOME/.config/environment.d"
-cat > "$HOME/.config/environment.d/flatpak.conf" <<'EOF'
-XDG_DATA_DIRS=%h/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
-XDG_CURRENT_DESKTOP=Hyprland
-EOF
+FLATPAK_ENV="$HOME/.config/environment.d/flatpak.conf"
+touch "$FLATPAK_ENV"
+append_if_missing "XDG_DATA_DIRS=%h/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share" "$FLATPAK_ENV"
+append_if_missing "XDG_CURRENT_DESKTOP=Hyprland" "$FLATPAK_ENV"
 
 HYPR_CFG="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf"
 append_if_missing "env = XDG_CURRENT_DESKTOP,Hyprland" "$HYPR_CFG"
@@ -159,7 +163,7 @@ systemctl --user restart xdg-desktop-portal-hyprland xdg-desktop-portal || true
 # Install GNOME Calculator as a quick test to verify Flatpak is working.
 # If this succeeds, the full Flatpak pipeline is functional and you can
 # install any app from COSMIC Store or the command line.
-flatpak install -y flathub org.gnome.Calculator || true
+flatpak install -y flathub org.gnome.Calculator || warn "Test Flatpak install failed (non-fatal — you can install apps manually)"
 
 cat <<'EONOTE'
 
